@@ -269,7 +269,7 @@ $$
 $$
 C'est le seul cas pour lequel on débute par une phase d'adhérence. 
 
-\paragraph{Cas 2 (Régime initial de glissement)}\label{par_1.2.0.4}
+\paragraph{Cas 2 (Régime initial de glissement)}\label{par_1.2.0.2}
 \mbox{}\\
 Le deuxième cas représente le cas contraire au premier.$$
 \begin{cases}
@@ -279,7 +279,7 @@ Le deuxième cas représente le cas contraire au premier.$$
 \end{cases}
 $$
 Il se divise en trois sous cas :
-\subparagraph{Cas 2.1}
+\subparagraph{Cas 2.1} \label{spar_1.2.0.2.1}
 $$
 \begin{cases}
 	\vspace{.2cm}
@@ -287,7 +287,7 @@ $$
 	v_0 \neq \text{v}
 \end{cases}
 $$
-\subparagraph{Cas 2.2}
+\subparagraph{Cas 2.2} \label{spar_1.2.0.2.2}
 $$
 \begin{cases}
 	\vspace{.2cm}
@@ -296,7 +296,7 @@ $$
 \end{cases}
 $$
 
-\subparagraph{Cas 2.3}
+\subparagraph{Cas 2.3} \label{spar_1.2.0.2.3}
 $$
 \begin{cases}
 	\vspace{.2cm}
@@ -571,16 +571,164 @@ octave> main1
 On remarque ici que $t_2 = t_3$. On peut donc dire qu'après $t_2$ on passe en régime de glissement sans revenir au régime d'adhérence. En effet, la condition $F_{\ts{T}} = F_c$ est toujours vérifiée, donc aussitôt qu'on rentre en régime d'adhérence, on en sort.
 
 On a donc les représentations graphiques suivantes pour le mouvement, la vitesse et les forces d'entraînement du tapis et de réaction du ressort : 
-
 \begin{figure}[h!]
 	\centering
-	\includegraphics[scale=.6]{CAS1.png}
+	\includegraphics[scale=.5]{CAS1.png}
 	\caption{Cas 1}
 \end{figure}
 
 \newpage
-
 \section{Cas 2}
+Jusqu'à ici nous avons vu que les fonctions \verb|CostG| et \verb|CostA| ont un minimum local aux temps de changement de régimes. Avec le Cas 1 on retrouve toujours un même patron, peu importe les conditions initiales appartenant au cas 1, en effet on commence en régime d'adhérence puis on passe en régime de glissement indéfiniment.\\
+La question qu'on pourrait se poser est "Est ce qu'on voit ce phénomène aussi quand on change de cas"?  \\
+
+Comme vu dans \ref{ssec_1.2} le cas 2 regroupe tous les cas possibles qui sont contraires au premier. Même si les cas 2.1, 2.2 et 2.3 n'ont pas les mêmes conditions initiales, ils suivent le même modèle.\\
+Ainsi, pour étudier chacun des cas nous faisons une fonction qui renvoie les temps et position de changement de passage en fonction des conditions initiales.
+
+\begin{lstlisting}
+function lst = List(min_x,max_x,min_v,max_v,nx,nv,k,l_0,m,g,v,nu,F_c,w,tcF,tcK)
+  lst = [];
+  nt = 200;
+  t_0 = 0;
+  
+  x0 = linspace(min_x,max_x,nx);
+  v0 = linspace(min_v,max_v,nv);
+
+  for i = 1:nx;
+    x_0 = x0(i);
+    
+    for j = 1:nv;
+      v_0 = v0(j);
+
+      %%Phase 1 : glissement ----------------------
+      phi = Phi(v_0,k,l_0,v,F_c);
+      t01=linspace(t_0,t_0 + 4*max(tcF,tcK),nt);
+      CostG = @(t,t_d,x_d,v_d,w,phi,v) ((vG(t,t_d,x_d,v_d,w,phi) - v).^2);
+      it1=find(diff(sign(diff(CostG(t01,t_0,x_0,v_0,w,phi,v))))==2,1);
+      
+      t_1 = fminsearch(@(t) CostG(t,t_0,x_0,v_0,w,phi,v),t01(it1+1));
+      x_1 = xG(t_1,t_0,x_0,v_0,w,phi);
+      
+      %% Phase 2 : adherence ------------------------
+      v_1 = v;
+      phi = Phi(v_1,k,l_0,v,F_c);
+      t12 = linspace(t_1,t_1 + 4*max(tcK,tcF),nt);      
+      CostA = @(t,t_d,x_d,v_d,v,k,l_0,F_c) (abs(fT(t,t_d,x_d,v_d,v,k,l_0,F_c,'ad') - F_c).^2);
+      it2 = find(diff(sign(diff(CostA(t12,t_1,x_1,v_1,v,k,l_0,F_c))))==2,1);
+      
+      t_2 = fminsearch(@(t) CostA(t,t_1,x_1,v_1,v,k,l_0,F_c),t12(it2+1));
+      x_2 = xA(t_2,t_1,x_1,v_1);
+      
+      %% Phase 3 : glissement ------------------------
+      v_2 = v;
+      phi = Phi(v_2,k,l_0,v,F_c);
+      t23 = linspace(t_2,t_2 + 2*max(tcF,tcK),nt);
+      it3 = find(diff(sign(diff(CostG(t23,t_2,x_2,v_2,w,phi,v))))==2,1);
+      
+      t_3 = fminsearch(@(t) CostG(t,t_2,x_2,v_2,w,phi,v),t23(it3+1));
+      x_3 = xG(t_3,t_2,x_2,v_2,w,phi);
+
+      lst = [lst;x_0,v_0,t_1,t_2,t_3,t_2-t_1];%X_1,x_2,x_3];
+    end
+  end
+endfunction
+\end{lstlisting}
+
+
+
+Examinons-les un par un.
+
+\subsection{Observations}
+\subsubsection{Cas 2.1}
+Voici les conditions initiales qu'on doit suivre:
+$$
+\begin{cases}
+	\vspace{.2cm}
+	x_0 \in [l_0-\alpha~,~l_0-\alpha]\\
+	v_0\neq \text{v}
+\end{cases}
+$$
+On peut donc écrire :
+\begin{lstlisting}
+List(l_0,l_0,-1,1,1,21,k,l_0,m,g,v,nu,F_c,w,tcF,tcK)
+\end{lstlisting}
+
+Ce qui nous donne le tableau suivant :
+
+\begin{figure}[h!]
+	\centering
+	\renewcommand{\arraystretch}{1.5}
+	\begin{tabular}{|C{1.3cm}|C{1.3cm}|C{1.3cm}|C{1.3cm}|C{1.3cm}|C{1.3cm}|C{1.3cm}|C{1.3cm}|C{1.3cm}|}
+	\hline
+	$x_0$ & $v_0$ & $t_1$ & $t_2$ & $t_3$ & $t_2-t_1$ & $x_1$ & $x_2$ & $x_3$ \\
+	\hline
+	0.3000 & -1.0000 & 0.0740 & 0.9317 & 1.3759 & 0.8577 & 0.2633 & 0.3491 & 0.3490\\
+	\hline
+	0.3000 & -0.9000 & 0.0708 & 0.8712 & 1.3155 & 0.8004 & 0.2690 & 0.3490 & 0.3491\\
+	\hline
+	0.3000 & -0.8000 & 0.0672 & 0.8126 & 1.2569 & 0.7454 & 0.2745 & 0.3491 & 0.3491\\
+	\hline
+	0.3000 & -0.7000 & 0.0631 & 0.7563 & 1.2006 & 0.6932 & 0.2797 & 0.3490 & 0.3491\\
+	\hline
+        0.3000 & -0.6000 & 0.0582 & 0.7028 & 1.1471 & 0.6446 & 0.2846 & 0.3491 & 0.3491\\
+        \hline
+        0.3000 & -0.5000 & 0.0525 & 0.6530 & 1.0972 & 0.6005 & 0.2890 & 0.3491 & 0.3491\\
+        \hline
+        0.3000 & -0.4000 & 0.0458 & 0.6076 & 1.0519 & 0.5618 & 0.2929 & 0.3490 & 0.3491\\
+        \hline
+        0.3000 & -0.3000 & 0.0383 & 0.5679 & 1.0122 & 0.5297 & 0.2961 & 0.3490 & 0.3490\\
+        \hline
+        0.3000 & -0.2000 & 0.0297 & 0.5352 & 0.9795 & 0.5055 & 0.2985 & 0.3490 & 0.3491\\
+        \hline
+        0.3000 & -0.1000 & 0.0203 & 0.5107 & 0.9550 & 0.4905 & 0.3000 & 0.3490 & 0.3490\\
+        \hline
+        0.3000 &       0 & 0.0102 & 0.4956 & 0.9399 & 0.4854 & 0.3005 & 0.3490 & 0.3490\\
+        \hline
+        0.3000 &  0.2000 & 0.0100 & 0.4855 & 0.9298 & 0.4754 & 0.3015 & 0.3491 & 0.3491\\
+        \hline
+        0.3000 &  0.3000 & 0.0195 & 0.4707 & 0.9151 & 0.4513 & 0.3039 & 0.3490 & 0.3491\\
+        \hline
+        0.3000 &  0.4000 & 0.0281 & 0.4474 & 0.8916 & 0.4193 & 0.3071 & 0.3491 & 0.3490\\
+        \hline
+        0.3000 &  0.5000 & 0.0359 & 0.4164 & 0.8607 & 0.3805 & 0.3110 & 0.3490 & 0.3490\\
+        \hline
+        0.3000 &  0.6000 & 0.0427 & 0.3790 & 0.8233 & 0.3364 & 0.3154 & 0.3491 & 0.3491\\
+        \hline
+        0.3000 &  0.7000 & 0.0487 & 0.3364 & 0.7807 & 0.2878 & 0.3203 & 0.3491 & 0.3491\\
+        \hline
+        0.3000 &  0.8000 & 0.0539 & 0.2895 & 0.7338 & 0.2356 & 0.3255 & 0.3491 & 0.3491\\
+        \hline
+        0.3000 &  0.9000 & 0.0584 & 0.2391 & 0.6833 & 0.1806 & 0.3310 & 0.3491 & 0.3491\\
+        \hline
+        0.3000 &  1.0000 & 0.0624 & 0.1857 & 0.6300 & 0.1233 & 0.3367 & 0.3490 & 0.3491\\
+        \hline
+	\end{tabular}
+        \caption{Cas 2.1 ; $x_0 = l_0$ , $v_0 \in [- 1,+ 1]_{v \neq \text{v}}$}
+
+\end{figure}
+
+En premier, une chose nous saute aux yeux : $x_2$ et $x_3$ ont les mêmes valeurs à un milimètre près pour un $v_0$ quelconque.
+On peut remarquer également que $t_2$ et $t_3$ a un écart constant pour chacun des $v_0$. On peut se demander qu'arrive donc entre $t_1$ et $t_2$.
+
+%%% GRAPHIQUE %%%
+On peut remarquer que plus la vitesse est élevée, plus $t_1$ et $t_2$ sont proches. Ainsi, lors qu'on soumet la masse à  une vitesse initiale très élevée on a un régime d'adhérence presque inpersceptible (image de gauche). Au contraire si on prend une vitesse initiale négative on retrouvera un régime d'adhérence beaucoup plus imposant (graphique de droite).
+\begin{figure}[h!]
+  \centering
+  \hspace{-4cm}
+  \begin{subfigure}[b]{.49\textwidth}
+    \includegraphics[width = 1.5\linewidth]{CAS2_1a.png}
+  \end{subfigure}
+    \begin{subfigure}[b]{.49\textwidth}
+    \includegraphics[width = 1.5\linewidth]{CAS2_1b.png}
+  \end{subfigure}
+  \caption{Cas 2.1 pour $v_0 = 1.1$ et $v_0 = -1.0$}
+
+\end{figure}
+
+\newpage
+\color{red}JAJJAJAJAJAJAJAJAJAJAJAJJAJAJAJAJAJAJAJAJAJAJJAJAJAJAJAJAJAJAJAJAJJAJAJAJAJAJAJAJAJA \color{black}
+
+
 Comme dans le cas 1, on cherche à caractériser le mouvement de la masse, sa vitesse et la force d'entraînement du tapis en fonction du temps et d'en donner une représentation graphique dans le second cas énoncé. On donne d'abord les conditions initiales pour chaque cas :
 
 \paragraph{Cas 2.1}

@@ -45,7 +45,7 @@ function lst = List(min_x,max_x,min_v,max_v,nx,nv,k,l_0,m,g,v,nu,F_c,w,tcF,tcK)
       t_3 = fminsearch(@(t) CostG(t,t_2,x_2,v_2,w,phi,v),t23(it3+1));
       x_3 = xG(t_3,t_2,x_2,v_2,w,phi);
 
-      lst = [lst;x_0,v_0,t_1,t_2,t_3,t_2-t_1];%X_1,x_2,x_3];
+      lst = [lst;x_0,v_0,t_1,t_2,t_3,t_2-t_1,x_1,x_2,x_3];
     end
   end
 endfunction

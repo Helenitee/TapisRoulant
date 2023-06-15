@@ -9,7 +9,7 @@ format short
 
 %% Variables initialisation
 t_0 = 0
-x_0 = 0.4
+x_0 = l_0 - .25
 v_0 = v;
 
 nt=200;
