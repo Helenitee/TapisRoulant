@@ -41,7 +41,7 @@
 	breaklines=true,
 	postbreak=\mbox{\textcolor{red}{$\hookrightarrow$}\space},
 	prebreak=\mbox{\textcolor{red}{$\hookleftarrow$}\space},
-	basicstyle= \ttfamily,
+	basicstyle= \small\ttfamily,
   	literate={+}{{\textcolor{myblue}{+}}}1
            {-}{{\textcolor{myblue}{-}}}1
            {*}{{\textcolor{myblue}{*}}}1
@@ -553,7 +553,7 @@ On répète l'opération pour $t_3$ : on passe en régime d'adhérence après $t
 %% SCRIPT main1
 t23 = linspace(t_2,t_2 + 4*max(tcK,tcF),nt);
 
-it3 =find(diff(sign(diff(CostA(t23,t_2,x_2,v_2,v,k,l_0,F_c))))==2,1);
+it3 = find(diff(sign(diff(CostA(t23,t_2,x_2,v_2,v,k,l_0,F_c))))==2,1);
 
 t_3 = fminsearch(@(t) CostA(t,t_2,x_2,v_2,v,k,l_0,F_c),t23(it3+1))
 \end{lstlisting}
@@ -568,19 +568,29 @@ octave> main1
  t_3 = 0.6898
 \end{lstlisting}
 
+\begin{figure}[h!]
+  \centering
+  \hspace{-2cm}
+  \begin{subfigure}[b]{.45\linewidth}
+    \includegraphics[width=1.3\linewidth]{Cas1a.png}
+  \end{subfigure}
+  \hspace{2cm}
+  \begin{subfigure}[b]{.45\linewidth}
+    \includegraphics[width=1.3\linewidth]{CAS1b.png}
+  \end{subfigure}
+  \caption{Cas 1 ; $x_0 = l_0$ , $v_0 = \text{v}$}
+\end{figure}
+
 On remarque ici que $t_2 = t_3$. On peut donc dire qu'après $t_2$ on passe en régime de glissement sans revenir au régime d'adhérence. En effet, la condition $F_{\ts{T}} = F_c$ est toujours vérifiée, donc aussitôt qu'on rentre en régime d'adhérence, on en sort.
 
 On a donc les représentations graphiques suivantes pour le mouvement, la vitesse et les forces d'entraînement du tapis et de réaction du ressort : 
-\begin{figure}[h!]
-	\centering
-	\includegraphics[scale=.5]{CAS1.png}
-	\caption{Cas 1}
-\end{figure}
 
 \newpage
 \section{Cas 2}
-Jusqu'à ici nous avons vu que les fonctions \verb|CostG| et \verb|CostA| ont un minimum local aux temps de changement de régimes. Avec le Cas 1 on retrouve toujours un même patron, peu importe les conditions initiales appartenant au cas 1, en effet on commence en régime d'adhérence puis on passe en régime de glissement indéfiniment.\\
-La question qu'on pourrait se poser est "Est ce qu'on voit ce phénomène aussi quand on change de cas"?  \\
+Jusqu'à ici nous avons vu que les fonctions \verb|CostG| et \verb|CostA| ont un minimum local aux temps de changement de régimes. Avec le Cas 1 on retrouve toujours un même patron, peu importe les conditions initiales appartenant au cas 1, en effet on commence en régime d'adhérence puis on passe en régime de glissement indéfiniment.
+
+La question qu'on pourrait se poser est "Est ce qu'on voit ce phénomène aussi quand on change de cas"?
+
 
 Comme vu dans \ref{ssec_1.2} le cas 2 regroupe tous les cas possibles qui sont contraires au premier. Même si les cas 2.1, 2.2 et 2.3 n'ont pas les mêmes conditions initiales, ils suivent le même modèle.\\
 Ainsi, pour étudier chacun des cas nous faisons une fonction qui renvoie les temps et position de changement de passage en fonction des conditions initiales.
@@ -599,7 +609,6 @@ function lst = List(min_x,max_x,min_v,max_v,nx,nv,k,l_0,m,g,v,nu,F_c,w,tcF,tcK)
     
     for j = 1:nv;
       v_0 = v0(j);
-
       %%Phase 1 : glissement ----------------------
       phi = Phi(v_0,k,l_0,v,F_c);
       t01=linspace(t_0,t_0 + 4*max(tcF,tcK),nt);
@@ -615,7 +624,11 @@ function lst = List(min_x,max_x,min_v,max_v,nx,nv,k,l_0,m,g,v,nu,F_c,w,tcF,tcK)
       t12 = linspace(t_1,t_1 + 4*max(tcK,tcF),nt);      
       CostA = @(t,t_d,x_d,v_d,v,k,l_0,F_c) (abs(fT(t,t_d,x_d,v_d,v,k,l_0,F_c,'ad') - F_c).^2);
       it2 = find(diff(sign(diff(CostA(t12,t_1,x_1,v_1,v,k,l_0,F_c))))==2,1);
-      
+
+      if(length(it2)<1)
+            continue
+      end
+
       t_2 = fminsearch(@(t) CostA(t,t_1,x_1,v_1,v,k,l_0,F_c),t12(it2+1));
       x_2 = xA(t_2,t_1,x_1,v_1);
       
@@ -633,10 +646,6 @@ function lst = List(min_x,max_x,min_v,max_v,nx,nv,k,l_0,m,g,v,nu,F_c,w,tcF,tcK)
   end
 endfunction
 \end{lstlisting}
-
-
-
-Examinons-les un par un.
 
 \subsection{Observations}
 \subsubsection{Cas 2.1}
@@ -714,307 +723,109 @@ On peut remarquer également que $t_2$ et $t_3$ a un écart constant pour chacun
 On peut remarquer que plus la vitesse est élevée, plus $t_1$ et $t_2$ sont proches. Ainsi, lors qu'on soumet la masse à  une vitesse initiale très élevée on a un régime d'adhérence presque inpersceptible (image de gauche). Au contraire si on prend une vitesse initiale négative on retrouvera un régime d'adhérence beaucoup plus imposant (graphique de droite).
 \begin{figure}[h!]
   \centering
-  \hspace{-4cm}
-  \begin{subfigure}[b]{.49\textwidth}
+  \hspace{-3cm}
+  \begin{subfigure}[b]{.4\textwidth}
     \includegraphics[width = 1.5\linewidth]{CAS2_1a.png}
   \end{subfigure}
-    \begin{subfigure}[b]{.49\textwidth}
+  \hspace{2.5cm}
+  \begin{subfigure}[b]{.4\textwidth}
     \includegraphics[width = 1.5\linewidth]{CAS2_1b.png}
   \end{subfigure}
   \caption{Cas 2.1 pour $v_0 = 1.1$ et $v_0 = -1.0$}
-
 \end{figure}
 
-\newpage
-\color{red}JAJJAJAJAJAJAJAJAJAJAJAJJAJAJAJAJAJAJAJAJAJAJJAJAJAJAJAJAJAJAJAJAJJAJAJAJAJAJAJAJAJA \color{black}
+Pour visualiser plus cette relation, on représente $t_1$ et $t_2 - t_1$ en fonction de $v_0$ :
 
+\begin{figure}[h!]
+  \centering
+  \begin{subfigure}[b]{.4\textwidth}
+    \includegraphics[width = \linewidth]{t_1.png}
+    \caption*{$t_1-t_0$ en fonction de $v_0$}
+  \end{subfigure}
+  \hspace{1cm}
+  \begin{subfigure}[b]{.4\textwidth}
+    \includegraphics[width = \linewidth]{t_2-t_1.png}
+    \caption*{$t_2-t_1$ en fonction de $v_0$}
+  \end{subfigure}
+  \caption{Differences de temps de changement de régimes en fonction de $v_0$}
+\end{figure}
 
-Comme dans le cas 1, on cherche à caractériser le mouvement de la masse, sa vitesse et la force d'entraînement du tapis en fonction du temps et d'en donner une représentation graphique dans le second cas énoncé. On donne d'abord les conditions initiales pour chaque cas :
+On peut voir que plus les conditions initiales sont proches des conditions d'adhérence, plus on trouve un $t_1$ proche de 0, et donc on se rapproche du cas 1.
 
-\paragraph{Cas 2.1}
- 
-$$
-\begin{cases}
-	\vspace{.2cm}
-	x_0 \in [l_0-\alpha~,~l_0-\alpha]\\
-	v_0\neq \text{v}
-\end{cases}
-$$
-
-Dans le code on note :
-
-\begin{lstlisting}
-%CAS 2
-%Variables d'initialisation
-t_0 = 0 			% tmps ini		[s]
-x_0 = l_0; 		% position ini	[m]
-v_0 = v + u;		% vitesse ini	[m/s]     
-\end{lstlisting}
-
-avec $u\in \mathbb{R}^*$ arbitraire.
-
-\paragraph{Cas 2.2}
+\subsubsection{Cas 2.2}
+On change de conditions initiales, maintenant on a:
 
 $$
 \begin{cases}
 	\vspace{.2cm}
-	x_0 \notin [l_0-\alpha~,~l_0-\alpha]\\
-	v_0= \text{v}
+	x_0 \not\in [l_0-\alpha~,~l_0-\alpha]\\
+	v_0 = \text{v}
 \end{cases}
 $$
 
-Dans le code :
-
 \begin{lstlisting}
-%CAS 3
-%Variables d'initialisation
-t_0 = 0				% tmps ini		[s]
-x_0 = l_0 + d;		% position ini	[m]
-v_0 = v ;			% vitesse ini	[m/s]       
+  List(l_0,l_0 + .3,v,v,30,1,k,l_0,m,g,v,nu,F_c,w,tcF,tcK)
 \end{lstlisting}
-
-avec $d\in \mathbb{R}^*$ aribitraire.
-
-\paragraph{Cas 2.3}
-
-$$
-\begin{cases}
-	\vspace{.2cm}
-	x_0 \notin [l_0-\alpha~,~l_0-\alpha]\\
-	v_0\neq \text{v}
-\end{cases}
-$$
-
-Dans le code :
-
-\begin{lstlisting}
-%CAS 4
-%Variables d'initialisation
-t_0 = 0				% tmps ini		[s]
-x_0 = l_0 + d;		% position ini	[m]
-v_0 = v + u ;		% vitesse ini	[m/s]       
-\end{lstlisting}
-
-avec $d,~u\in \mathbb{R}^*$ arbitraires.
-
-Avec ces conditions initiales, on commence en régime de glissement.
-
-\subsection{Calcul de $t_1$ : Glissement $\rightarrow$ Adhérence}
-On effectue le calcul de $t_1$ à partir de ce que l'on a défini dans la partie de recherche :
-
-\begin{lstlisting}
-% Estimation numerique de t_1
-Cost = @(t) abs(d_xG(t,t_0,x_0,v_0,omega,phi) - v);
-\end{lstlisting}
-
-On a ensuite :
-\paragraph{Cas 2}
-$ $
-\begin{lstlisting}
-%CAS 2
-t_1 = fminsearch(@(t) Cost(t), t_0 + 3/2 * tcK)		
-\end{lstlisting}
-
-\paragraph{Cas 3}
-$ $
-\begin{lstlisting}
-%CAS 3
-t_1 = fminsearch(@(t) Cost1(t),t_0 + 1/2 * tcK)		
-\end{lstlisting}
-
-\paragraph{Cas 4}
-$ $
-\begin{lstlisting}
-%CAS 4
-t_1 = fminsearch(@(t) Cost1(t),t_0 + tcK)		
-\end{lstlisting}
-
-Pour chacun des cas, on choisit le point de départ de la recherche du minimum par lecture graphique afin que dans chacun d'eux, la valeur choisie nous permette de tomber sur la bonne valeur de $t_1$ (le premier point qui vérifie la condition après $t_0$ dans le sens positif). 
-
-Dans le même temps, on calcule $x(t_1)$ dans chaque cas en prenant $d=0.1$ et $u=0.2$ : 
-
-\begin{lstlisting}
-d = 0.1;
-u = 0.2;
-\end{lstlisting}
-
-\paragraph{Cas 2}
-$ $ 
-\begin{lstlisting}
->>
-t_1 = 0.424794257130005
-x_1 = 0.296077798483522
-\end{lstlisting}
-
-\paragraph{Cas 3}
-$ $ 
-\begin{lstlisting}
->>
-t_1 = 0.241675396907918
-x_1 = 0.298102878339728
-\end{lstlisting}
-
-\paragraph{Cas 4}
-$ $
-\begin{lstlisting}
->>
-t_1 = 0.703443567253337
-x_1 = 0.294318109098953
-\end{lstlisting}
-
-\subsection{Calcul de $t_2$ : Adhérence $\rightarrow$ Glissement}\label{ssec_4.2}
-Pour $t_2$, on se trouve dans la situation de passage entre adhérence et glissement : on a deux choix possibles pour le calcul de $t_2$. Ceux-ci sont analogues à ceux effectués en partie \ref{ssec_3.1}. On effectue le calcul numérique de $t_2$ :
-
-\paragraph{Cas 2}
-$ $
-\begin{lstlisting}
-% Estimation numerique de t_2
-Cost=@(t) (fT(t,t_1,x_1,v,v,k,l_0,F_c,'ad')-F_c).^2;
-t2N = fminsearch(@(t) Cost(t),t_1 + tcK);
-\end{lstlisting}
-
-\paragraph{Cas 3}
-$ $
-
-\paragraph{Cas 4}
-$ $
-
-Le point de départ du \verb|fminsearch(...)| est ajusté ici encore en fonction de la lecture graphique 
-
-Et pour l'ensemble des cas on a le calcul analytique suivant (que l'on va conserver) :
-
-\begin{lstlisting}
-% Estimation analytique de t_2
-t2A = t_1+tcF - (x_1 - l_0)/v;
-t_2=t2A
-\end{lstlisting}
-
-\subsection{Calcul de $t_3$ : Glissement $\rightarrow$ Adhérence}
-Le calcul de $t_3$ est analogue à celui de $t_1$, on modifie uniquement le point de départ dans la fonction \verb|d_xG| et les points de départ de la méthode \verb|fminsearch(...)| afin d'obtenir la valeur de $t_3$ attendue. Ainsi on a :
-
-\begin{lstlisting}
-% Estimation numerique de t_3
-Cost = @(t) abs(d_xG(t,t_2,x_2,v,omega,phi) - v);
-
-t_3 = fminsearch(@(t) Cost1(t),t_2 + tcK)		
-\end{lstlisting}
-
-\verb|t_2 + tcK| est un point de départ adapté pour chaque cas. 
-
-On a donc les résultats suivants : 
-
-\paragraph{Cas 2}
-$ $
-\begin{lstlisting}
->>
-t_1 = 0.424794257130005
-t_2 = 0.954516272294783
-t_3 = 1.398804566110619
-
-x_1 = 0.296077798483522
-x_2 = 0.349050000000000
-x_3 = 0.349050000000000
-\end{lstlisting}
-\paragraph{Cas 3}
-$ $
-\begin{lstlisting}
->>
-t_1 = 0.241675396907918
-t_2 = 0.751146613510638
-t_3 = 1.195434907326475
-
-x_1 = 0.298102878339728
-x_2 = 0.349050000000000
-x_3 = 0.349050000000000
-\end{lstlisting}
-
-\paragraph{Cas 4}
-$ $ 
-\begin{lstlisting}
->>
-t_1 = 0.703443567253337
-t_2 = 1.250762476263806
-t_3 = 1.695050770079643
-
-x_1 = 0.294318109098953
-x_2 = 0.349050000000000
-x_3 = 0.349050000000000
-\end{lstlisting}
-
-On remarque que $x_2=x_3$ dans chaque cas : on s'attend à retrouver le même phénomène que précédemment à savoir, que $t_3$ et $t_4$ seront identiques et que le système se retrouvera à nouveau en régime de glissement sans jamais revenir en régime d'adhérence. Un autre fait marquant est qu'on retrouve toujours les mêmes valeurs pour$x_1$, $x_2$ et $x_3$ peut importe le cas avec les conditions initiales qu'on a posé. 
-
-\subsection{Calcul de $t_4$}
-On effectue un calcul analogue à celui effectué pour $t_2$ en \ref{ssec_4.2}. On note pour chaque cas :
-
-\begin{lstlisting}
-%Estimation analytique de t_4 
-t4A = t_3+tcF - (x_3 - x_0)/v;
-
-t_4 = t4A
-\end{lstlisting}
-
-On obtient le résultat suivant :
-
-\paragraph{Cas 2}
-$ $
-\begin{lstlisting}
->>
-t_3 = 1.398804566110619
-t_4 = 1.398804566110619
-\end{lstlisting}
-
-\paragraph{Cas 3}
-$ $
-\begin{lstlisting}
->>
-t_3 = 1.195434907326475
-t_4 = 1.195434907326475
-\end{lstlisting}
-
-\paragraph{Cas 4}
-$ $
-\begin{lstlisting}
->>
-t_3 = 1.695050770079643
-t_4 = 1.695050770079642
-\end{lstlisting}
-
-
-On vérifie bien $t_3=t_4$ pour chaque cas. 
-
-Ici encore, ce phénomène s'explique par le fait que la condition de passage en glissement est automatiquement vérifiée après $t_3$, donc on reste en glissement. 
-
-D'où les graphes suivants  pour chacun des cas :
-
-\paragraph{Cas 2}
-$ $ 
-\begin{figure}[h!]
-	\centering
-	\includegraphics[scale=.6]{CAS2.png}
-	\caption{Cas 2}
-\end{figure}
-
-\paragraph{Cas 3}
-$ $ 
-\begin{figure}[h!]
-	\centering
-	\includegraphics[scale=.75]{CAS3.png}
-	\caption{Cas 3}
-\end{figure}
-
-\paragraph{Cas 4}
-$ $
 
 \begin{figure}[h!]
 	\centering
-	\includegraphics[scale=.75]{CAS4.png}
-	\caption{Cas 4}
+	\renewcommand{\arraystretch}{1.5}
+	\begin{tabular}{|C{1.3cm}|C{1.3cm}|C{1.3cm}|C{1.3cm}|C{1.3cm}|C{1.3cm}|C{1.3cm}|C{1.3cm}|C{1.3cm}|}
+	  \hline
+       	  $x_0$ & $v_0$ & $t_1$ & $t_2$ & $t_3$ & $t_2-t_1$ & $x_1$ & $x_2$ & $x_3$ \\
+          \hline                                                                                       
+          0.351724 & 0.100000 & 0.393151 & 0.419921 & 0.864200 & 0.026770 & 0.346375 & 0.349052 & 0.349051\\
+          \hline
+          0.362069 & 0.100000 & 0.292483 & 0.422729 & 0.867008 & 0.130246 & 0.336028 & 0.349053 & 0.349052\\
+          \hline
+          0.372414 & 0.100000 & 0.263699 & 0.497331 & 0.941610 & 0.233632 & 0.325685 & 0.349049 & 0.349048\\
+          \hline
+          0.382759 & 0.100000 & 0.251398 & 0.588445 & 1.032743 & 0.337047 & 0.315343 & 0.349047 & 0.349048\\
+          \hline
+          0.393103 & 0.100000 & 0.244651 & 0.685207 & 1.129495 & 0.440556 & 0.304997 & 0.349052 & 0.349052\\
+          \hline
+          0.403448 & 0.100000 & 0.240407 & 0.784378 & 1.228721 & 0.543970 & 0.294650 & 0.349047 & 0.349052\\
+          \hline
+          0.413793 & 0.100000 & 0.237539 & 0.884956 & 1.329273 & 0.647418 & 0.284308 & 0.349050 & 0.349053\\
+          \hline
+          0.424138 & 0.100000 & 0.235402 & 0.986296 & 1.430575 & 0.750893 & 0.273960 & 0.349049 & 0.349048\\
+          \hline
+          0.434483 & 0.100000 & 0.233815 & 1.088176 & 1.532406 & 0.854361 & 0.263617 & 0.349053 & 0.349047\\
+          \hline
+          0.444828 & 0.100000 & 0.232595 & 1.190325 & 1.634592 & 0.957731 & 0.253275 & 0.349048 & 0.349046\\
+          \hline
+          0.455172 & 0.100000 & 0.231525 & 0.311803 & 0.523778 & 0.080278 & 0.242925 & 0.250953 & 0.447148\\
+          \hline
+          0.465517 & 0.100000 & 0.230731 & 0.414396 & 0.626371 & 0.183665 & 0.232584 & 0.250950 & 0.447150\\
+          \hline
+          0.475862 & 0.100000 & 0.229999 & 0.517139 & 0.729114 & 0.287140 & 0.222236 & 0.250950 & 0.447151\\
+          \hline
+          0.486207 & 0.100000 & 0.229449 & 0.619976 & 0.831951 & 0.390527 & 0.211895 & 0.250948 & 0.447153\\
+          \hline
+          0.496552 & 0.100000 & 0.228900 & 0.722964 & 0.934938 & 0.494063 & 0.201546 & 0.250953 & 0.447148\\
+          \hline
+          0.506897 & 0.100000 & 0.228473 & 0.825923 & 1.037897 & 0.597450 & 0.191203 & 0.250948 & 0.447152\\
+          \hline
+          0.517241 & 0.100000 & 0.228107 & 0.928971 & 1.140946 & 0.700865 & 0.180861 & 0.250947 & 0.447154\\
+          \hline
+          0.527586 & 0.100000 & 0.227740 & 1.032092 & 1.244067 & 0.804351 & 0.170514 & 0.250949 & 0.447152\\
+          \hline
+          0.537931 & 0.100000 & 0.227435 & 1.135252 & 1.347227 & 0.907817 & 0.160169 & 0.250951 & 0.447150\\
+          \hline
+          0.548276 & 0.100000 & 0.227191 & 1.238451 & 1.450426 & 1.011260 & 0.149827 & 0.250953 & 0.447148\\
+          \hline
+          0.558621 & 0.100000 & 0.226886 & 1.341641 & 1.553616 & 1.114755 & 0.139477 & 0.250952 & 0.447149\\
+          \hline
+          0.568966 & 0.100000 & 0.226703 & 1.444833 & 1.656808 & 1.218130 & 0.129136 & 0.250949 & 0.447152\\
+          \hline
+          0.579310 & 0.100000 & 0.226459 & 1.548077 & 1.760052 & 1.321618 & 0.118787 & 0.250949 & 0.447152\\
+          \hline
+          0.589655 & 0.100000 & 0.226276 & 1.651326 & 1.863300 & 1.425050 & 0.108442 & 0.250947 & 0.447153\\
+          \hline
+          0.600000 & 0.100000 & 0.226153 & 1.754666 & 1.966641 & 1.528512 & 0.098103 & 0.250954 & 0.447147\\
+          \hline
+	\end{tabular}
+        \caption{Cas 2.2 ; $x_0 \in [0.3,0.6]$ , $v_0 = v$}
+
 \end{figure}
-
-
-\medskip
-On remarque qu'ici aussi, après le premier régime d'adhérence, on se retrouve en régime de glissement sans plus jamais en sortir. Le régime d'adhérence vient ici encore "lisser" le problème. 
-
-
-
 \end{document}
